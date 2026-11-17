@@ -1,0 +1,54 @@
+{
+  description = "Sandbox-buildable depthai (OAK camera) packages for nix-ros-overlay";
+
+  inputs = {
+    nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/2004728f9f450421c9d44b62d6c707a5834139bb";
+    nixpkgs.follows = "nix-ros-overlay/nixpkgs";
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nix-ros-overlay,
+    }:
+    let
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+
+      pkgsFor =
+        system:
+        import nixpkgs {
+          inherit system;
+          overlays = [
+            nix-ros-overlay.overlays.default
+            self.overlays.default
+          ];
+        };
+    in
+    {
+      # Expects nix-ros-overlay's overlay to be applied first.
+      overlays.default = import ./overlay.nix;
+
+      packages = nixpkgs.lib.genAttrs systems (
+        system:
+        let
+          pkgs = pkgsFor system;
+          ros = pkgs.rosPackages.jazzy;
+        in
+        {
+          inherit (pkgs) xlink-luxonis libnop-luxonis fp16-luxonis;
+          inherit (ros)
+            depthai
+            depthai-bridge
+            depthai-examples
+            depthai-ros-driver
+            depthai-ros
+            ;
+          default = ros.depthai-ros-driver;
+        }
+      );
+    };
+}
