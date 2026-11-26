@@ -5,19 +5,29 @@ Makes the Luxonis depthai (OAK camera) ROS 2 packages from
 the Nix sandbox.
 
 Upstream they fail ([nix-ros-overlay#412](https://github.com/lopsided98/nix-ros-overlay/issues/412))
-because depthai-core downloads its dependencies with the Hunter package
-manager, and its firmware, at configure time. This overlay fixes:
+because depthai-core downloads its dependencies (with Hunter in 2.x, vcpkg and
+FetchContent in 3.x), and its firmware, at configure time. This overlay fixes:
 
 - `depthai` (depthai-core 2.31.1): Hunter is disabled, dependencies come from
   nixpkgs or `pkgs/`, and the device and bootloader firmware are prefetched.
 - `depthai-examples`: the three neural network blobs it downloads are
   prefetched. `depthai-ros-driver` loads them at runtime.
+- `depthai-v3` (depthai-core 3.6.1): vcpkg is disabled, dependencies come
+  from nixpkgs or `pkgs/` (Luxonis' forks of basalt, basalt-headers, mp4v2
+  and websocketpp), FetchContent uses prefetched XLink, xtensor and xtl (not
+  the outdated xtensor/xtl copy vendored in the release tarball's `3rdparty/`),
+  and the RVC2 and RVC4 (OAK 4) device
+  firmware, bootloader, visualizer frontend and dynamic calibration library
+  are prefetched. All the default features stay on, including Basalt VIO,
+  which `depthai-ros-driver-v3` needs.
 
-Everything else (`depthai-bridge`, `depthai-ros-driver`, `depthai-ros`, ...)
-then builds unmodified.
+Everything else (`depthai-bridge`, `depthai-ros-driver`, `depthai-ros`, and
+their `*-v3` counterparts) then builds unmodified.
 
-Covers the depthai v2 packages in `humble` and `jazzy`. The `*-v3` packages
-and `kilted` (depthai-core 3.x) are not touched.
+Covers the depthai v2 packages in `humble` and `jazzy`, and the v3 packages
+(`depthai-v3`, `depthai-ros-v3`, ...) in `jazzy`. OAK 4 cameras need the v3
+packages. `humble`'s `depthai-v3` and `kilted`'s `depthai` (both 3.7.1) are not
+touched yet; see Updating.
 
 ## Use
 
@@ -75,8 +85,11 @@ pkgs = import nixpkgs {
 };
 ```
 
+For the v3 packages, use `depthai-ros-driver-v3` (or `depthai-ros-v3` for all
+of them) in place of `depthai-ros-driver`.
+
 The flake also exposes the jazzy packages directly, e.g.
-`nix build .#depthai-ros-driver`.
+`nix build .#depthai-ros-driver` or `nix build .#depthai-ros-driver-v3`.
 
 ## Notes
 
@@ -85,10 +98,15 @@ The flake also exposes the jazzy packages directly, e.g.
   `nix build --cores 3 -j1`.
 - The camera needs a udev rule for USB vendor `03e7` to be usable without
   root; Nix does not install one.
-- `DEPTHAI_ENABLE_CURL` is off, so the library cannot upload crash dumps to
-  Luxonis.
+- In 2.x, `DEPTHAI_ENABLE_CURL` is off, so the library cannot upload crash
+  dumps to Luxonis. 3.x keeps it on (with nixpkgs' libcpr).
 - libarchive, spdlog/fmt, bzip2, zlib and libusb come from nixpkgs rather than
-  the old versions Hunter pins.
+  the old versions Hunter pins. In 3.x most dependencies come from nixpkgs too,
+  so they are newer than vcpkg's baseline (e.g. Eigen 3.4.1, protobuf 34).
+- 3.x links Luxonis' prebuilt, closed-source `libdynamic_calibration.so`,
+  which is installed next to `libdepthai_v3-core.so`.
+- `cmake/` holds stand-in config packages (`liblzmaConfig.cmake`,
+  `CURLConfig.cmake`, ...) for nixpkgs builds that only ship pkg-config files.
 
 ## Updating
 
@@ -97,3 +115,12 @@ When nix-ros-overlay bumps depthai-core, add the new version's firmware to
 `cmake/Depthai/Depthai{DeviceSide,Bootloader}Config.cmake` in the source), and
 check the XLink, libnop and FP16 revisions in `pkgs/` against
 `cmake/Hunter/config.cmake`.
+
+When it bumps depthai-core 3.x (`depthai-v3`), add the new version to
+`pinsFor` in `pkgs/depthai-v3.nix`: the XLink, xtensor and xtl revisions are
+in `cmake/depthaiDependencies.cmake`, and the firmware, visualizer and dynamic
+calibration versions are in `cmake/Depthai/*Config.cmake`. Check the basalt,
+basalt-headers, mp4v2 and websocketpp revisions in `pkgs/` against
+`cmake/ports/*/portfile.cmake`. The same table is what supporting `humble`'s
+`depthai-v3` or `kilted`'s `depthai` (3.7.1) needs, plus adding the distro to
+`v3Distros` in `overlay.nix` (kilted names the package `depthai`).

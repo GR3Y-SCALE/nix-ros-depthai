@@ -39,13 +39,27 @@
           ros = pkgs.rosPackages.jazzy;
         in
         {
-          inherit (pkgs) xlink-luxonis libnop-luxonis fp16-luxonis;
+          inherit (pkgs)
+            xlink-luxonis
+            libnop-luxonis
+            fp16-luxonis
+            basalt-headers-luxonis
+            basalt-sdk-luxonis
+            mp4v2-luxonis
+            websocketpp-luxonis
+            ;
           inherit (ros)
             depthai
             depthai-bridge
             depthai-examples
             depthai-ros-driver
             depthai-ros
+            depthai-v3
+            depthai-bridge-v3
+            depthai-examples-v3
+            depthai-filters-v3
+            depthai-ros-driver-v3
+            depthai-ros-v3
             ;
           default = ros.depthai-ros-driver;
         }
