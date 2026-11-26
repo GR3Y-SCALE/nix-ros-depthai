@@ -188,6 +188,15 @@ in
     # vcpkg's lz4 port names its target lz4::lz4; lz4's own CMake config, which
     # nixpkgs installs, calls it LZ4::lz4.
     substituteInPlace CMakeLists.txt --replace-fail 'lz4::lz4' 'LZ4::lz4'
+
+    # vcpkg's protobuf port forces find_package(Protobuf) into CONFIG mode.
+    # Without it, CMake's FindProtobuf module hands back a bare libprotobuf.a
+    # with none of its abseil link dependencies, leaving libdepthai_v3-core.so
+    # with undefined absl:: symbols that only fail once a consumer links it.
+    substituteInPlace cmake/depthaiDependencies.cmake \
+      --replace-fail 'find_package(Protobuf ''${_QUIET} REQUIRED)' 'find_package(Protobuf ''${_QUIET} CONFIG REQUIRED)'
+    substituteInPlace protos/CMakeLists.txt \
+      --replace-fail 'find_package(Protobuf REQUIRED)' 'find_package(Protobuf CONFIG REQUIRED)'
   '';
 
   preConfigure = (old.preConfigure or "") + ''
