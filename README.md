@@ -102,7 +102,22 @@ The flake also exposes the jazzy packages directly, e.g.
   dumps to Luxonis. 3.x keeps it on (with nixpkgs' libcpr).
 - libarchive, spdlog/fmt, bzip2, zlib and libusb come from nixpkgs rather than
   the old versions Hunter pins. In 3.x most dependencies come from nixpkgs too,
-  so they are newer than vcpkg's baseline (e.g. Eigen 3.4.1, protobuf 34).
+  so they are newer than vcpkg's baseline (e.g. fmt 12, OpenCV 4.13).
+- Except for four, which `v3Pins` in `overlay.nix` holds at depthai 3.6.1's
+  vcpkg versions because their newer releases changed APIs it uses: Eigen
+  3.4.0 (3.4.1's `min`/`max` overloads reject `array.min(1)`), protobuf 29
+  (30+ returns `string_view` from descriptor names), cpp-httplib 0.20.1
+  (0.23+ renamed the client upload types) and cpr 1.11.0 with Luxonis' two
+  port patches, copied to `pkgs/patches/cpr/` (1.12+ passes `string_view` to
+  `DebugCallback`). They are private to libdepthai, so depthai-ros and other
+  consumers still build against nixpkgs' versions. protobuf and cpr are
+  linked statically, as vcpkg does, so depthai's `--exclude-libs=ALL` hides
+  their symbols: a shared protobuf 29 collides with the protobuf 34 that
+  OpenCV's dnn module loads into the driver process (via image_transport
+  plugins) and segfaults in protobuf's static initialisers.
+  basalt-headers and its Sophus use the pinned Eigen too, so depthai sees only
+  one. Recheck these against `vcpkg-configuration.json`'s baseline when
+  bumping depthai-core.
 - 3.x links Luxonis' prebuilt, closed-source `libdynamic_calibration.so`,
   which is installed next to `libdepthai_v3-core.so`.
 - `cmake/` holds stand-in config packages (`liblzmaConfig.cmake`,
