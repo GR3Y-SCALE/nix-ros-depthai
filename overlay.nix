@@ -30,6 +30,17 @@ let
   # process (image_transport plugins load it), and segfaults in protobuf's
   # static initialisers when the driver creates its image publishers.
   v3Pins = {
+    # semver 1.0 reworked the API that src/device/Version.cpp uses
+    # (semver::version from a string). Header-only, and linked PRIVATE.
+    neargye-semver = final.neargye-semver.overrideAttrs {
+      version = "0.3.1";
+      src = final.fetchFromGitHub {
+        owner = "Neargye";
+        repo = "semver";
+        tag = "v0.3.1";
+        hash = "sha256-0HOp+xzo8xcCUUgtSh87N9DXP5P0odBaYXhcDzOiiXE=";
+      };
+    };
     eigen = final.eigen_3_4_0;
     protobuf = (final.protobuf_29.override { enableShared = false; }).overrideAttrs (old: {
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [ (lib.cmakeBool "CMAKE_POSITION_INDEPENDENT_CODE" true) ];
