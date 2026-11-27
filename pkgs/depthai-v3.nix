@@ -69,6 +69,13 @@ let
     };
     # xtensor, xtl and every vcpkg library version are unchanged from 3.6.1.
     "3.12.0" = {
+      # Build from the GR3Y-SCALE/depthai-core fork instead of the ROS release
+      # tarball: branch ros-old-v3.12.0-patched is upstream's ros-old-v3.12.0
+      # tag (identical to the jazzy release) plus a BasaltVIO fix that waits
+      # for IMU data before initialising.
+      srcOwner = "GR3Y-SCALE";
+      srcRev = "f27a72944217a860b7d37220b02d119afafa6102";
+      srcHash = "sha256-7yq1Y6P8jp6Gkm3bMVPROvHhLlImZl38w113YfhyJt0=";
       xlinkRev = "def3760e05dba906b40326fa4d94291e5a4fb929";
       xlinkHash = "sha256-JPbXO0bSkMymXaY9WIwLkALwH+LtQbWciT1NqiIY+As=";
       xtensorRev = "d070cfcba9418ec45e5399708100eee1181a9573";
@@ -159,6 +166,20 @@ let
   };
 in
 {
+  src =
+    if pins ? srcRev then
+      fetchFromGitHub {
+        owner = pins.srcOwner;
+        repo = "depthai-core";
+        rev = pins.srcRev;
+        hash = pins.srcHash;
+        # The release tarball ships submodule contents (shared/depthai_boards,
+        # shared/depthai-bootloader-shared, ...); a git checkout needs them fetched.
+        fetchSubmodules = true;
+      }
+    else
+      old.src;
+
   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
     pkg-config
     # protoc, for the messages library.
