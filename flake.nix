@@ -2,7 +2,7 @@
   description = "Sandbox-buildable depthai (OAK camera) packages for nix-ros-overlay";
 
   inputs = {
-    nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/2004728f9f450421c9d44b62d6c707a5834139bb";
+    nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/c1b3e6b7f2146af98748735d263f5bf584275461";
     nixpkgs.follows = "nix-ros-overlay/nixpkgs";
   };
 

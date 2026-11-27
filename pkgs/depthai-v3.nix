@@ -67,6 +67,28 @@ let
         "linux-arm64" = "sha256-SzvjRWKylYfjlMkZ+GJXmpTjGPnjSdtCf03CpeCHYsE=";
       };
     };
+    # xtensor, xtl and every vcpkg library version are unchanged from 3.6.1.
+    "3.12.0" = {
+      xlinkRev = "def3760e05dba906b40326fa4d94291e5a4fb929";
+      xlinkHash = "sha256-JPbXO0bSkMymXaY9WIwLkALwH+LtQbWciT1NqiIY+As=";
+      xtensorRev = "d070cfcba9418ec45e5399708100eee1181a9573";
+      xtensorHash = "sha256-QPiDWSHMQuhKpUsnk+KeeHjfSEtWoWIyAUE8Z4oPn1A=";
+      xtlRev = "2da8e13ef3d7d9d6ccae3fd68f07892160e8b6c6";
+      xtlHash = "sha256-1gO6H1IJyq9wJgHCCpwix9NrzH0VjpyxaWSE7BQutvA=";
+      deviceCommit = "711e3afb3414982d4d41b2a762f426c2348f6ac8";
+      deviceHash = "sha256-ZOD4BWOM6S6ALJxhcEO3nYaohP+7Y4BiDDOfL4mC1w0=";
+      bootloaderVersion = "0.0.29";
+      bootloaderHash = "sha256-LngIu0kXw0BafMaR6U86Djj5ICX4nMmArsXdFIirLcM=";
+      rvc4Version = "0.0.1+280e85c74c5f8bc7507d5e3d666fca3e58a8e1f7";
+      rvc4Hash = "sha256-NInIv2gZUnxhgc1q+ixz3k0PEM1IjOOHVvohl5r3zhg=";
+      visualizerVersion = "4.1.6";
+      visualizerHash = "sha256-3Asz9kjWu+T6V9jW8mEM9tOWHGg+RfNHDWkOTrRMy+A=";
+      dynamicCalibrationVersion = "854d6e839f36b416889f2c8c1460b5dfd7b33afd";
+      dynamicCalibrationHash = {
+        "linux-x86_64" = "sha256-tPUrNc28HaSwb7IGwp7JV/xU7O1eg2ycRJzZR7WiEUI=";
+        "linux-arm64" = "sha256-gGKVase90CEOulr53bcBVLs5eXBYKheHExnEIMFpCbw=";
+      };
+    };
   };
 
   artifactory = "https://artifacts.luxonis.com/artifactory";
@@ -207,5 +229,18 @@ in
     lib.mapAttrsToList (name: file: ''
       cp ${file} "build/resources/${name}"
     '') resources
-  );
+  )
+  # Since 3.12 the firmware downloaders also fetch each package's LICENSE and
+  # fail unless it is byte-identical to the copy committed under notices/, so
+  # that copy is the downloaded file. They then try the RVC4 firmware's SBOMs,
+  # which the library does not embed; a `.unavailable` marker skips each one.
+  + ''
+    if [ -d notices ]; then
+      cp notices/depthai-device-RVC2-LICENSE "build/resources/depthai-device-fwp-${pins.deviceCommit}-LICENSE"
+      cp notices/depthai-device-RVC4-LICENSE "build/resources/depthai-device-rvc4-fwp-${pins.rvc4Version}-LICENSE"
+      for ext in spdx.json cdx.json; do
+        touch "build/resources/depthai-device-rvc4-fwp-${pins.rvc4Version}.$ext.unavailable"
+      done
+    fi
+  '';
 }
